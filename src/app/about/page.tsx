@@ -43,20 +43,10 @@ export default function AboutPage() {
 
   const team = [
     {
-      name: "Sarah Johnson",
-      role: "Founder & CEO",
-      description: "Former educator with 10+ years of experience in e-learning and educational technology.",
-    },
-    {
-      name: "Mike Chen",
-      role: "CTO",
-      description: "Full-stack developer passionate about creating intuitive and scalable educational platforms.",
-    },
-    {
-      name: "Emily Rodriguez",
-      role: "Head of Design",
-      description: "UX/UI designer focused on creating accessible and engaging learning experiences.",
-    },
+      name: "Roshan Raj",
+      role: "Founder & CEO & CTO",
+      description: "Competitive Programmer who is also a Full-stack developer passionate about creating intuitive and scalable educational platforms.",
+    }
   ]
 
   return (
@@ -121,7 +111,7 @@ export default function AboutPage() {
           <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">Meet Our Team</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {team.map((member, index) => (
-              <Card key={index}>
+              <Card key={index} className="col-start-2">
                 <CardContent className="p-6 text-center">
                   <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-blue-400 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold">
                     {member.name
