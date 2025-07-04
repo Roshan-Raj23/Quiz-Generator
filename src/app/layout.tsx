@@ -24,13 +24,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <Header />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+          <Header />
           {children}
           <Toaster richColors position="top-center"  />
+          <Footer />
         </ThemeProvider>
-
-        <Footer />
       </body>
     </html>
   )

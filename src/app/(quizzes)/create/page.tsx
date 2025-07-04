@@ -24,7 +24,7 @@ export default function CreateQuizPage() {
   const [quizDescription, setQuizDescription] = useState("")
   const [questions, setQuestions] = useState<Question[]>([])
   const [timeLimit, setTimeLimit] = useState(false)
-  const [timeLimitMinutes, setTimeLimitMinutes] = useState(10)
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState(1)
   const [difficulty, setDifficulty] = useState("medium")
   const [generateDifficulty, setGenerateDifficulty] = useState("medium")
   const [topic, setTopic] = useState("");
@@ -208,29 +208,35 @@ export default function CreateQuizPage() {
       }]
     }
 
-    const url = process.env.NEXT_PUBLIC_GEMINI_URL;
+    try {
 
-    let response = await fetch(url , {
-      method: 'POST',
-      body: JSON.stringify(payload),
-      // 'Content-Type' : 'application/json'
-    })
-
-    response = await response.json();
-    return response.candidates[0].content.parts[0].text;
+      const url = process.env.NEXT_PUBLIC_GEMINI_URL;
+  
+      let response = await fetch(url , {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        // 'Content-Type' : 'application/json'
+      })
+  
+      response = await response.json();
+      return response.candidates[0].content.parts[0].text;
+    } catch (error) {
+      // toast.error('Error generating quiz');
+      throw error;
+    }
   }
 
   const generateQuestions = async () => {
     setGeneratingResponse(true);
 
     try {
-        const data = await geminiResponse()
-        generateQuizAI(data);
+      const data = await geminiResponse()
+      generateQuizAI(data);
     } catch (err) {
-        console.error(err);
-        toast.error('Error generating quiz');
+      console.error(err);
+      toast.error('Error generating quiz');
     } finally {
-        setGeneratingResponse(false);
+      setGeneratingResponse(false);
     }
   };
 
@@ -245,8 +251,14 @@ export default function CreateQuizPage() {
     }
 
     toast.success("Processing");
-    await generateQuestions();
-    toast.success("Generated all the responses")
+
+    try {
+      await generateQuestions();
+      toast.success("Generated all the responses")
+    } catch { 
+      toast.error('Error generating quiz');
+    }
+
     resetAIPanel();
   }
 
@@ -286,6 +298,7 @@ export default function CreateQuizPage() {
                   value={quizDescription}
                   onChange={(e) => setQuizDescription(e.target.value)}
                   rows={3}
+                  required
                 />
               </div>
             </CardContent>
@@ -300,7 +313,7 @@ export default function CreateQuizPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label htmlFor="time-limit">Time Limit</Label>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Set a time limit for the entire quiz</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Set a time limit per question</p>
                 </div>
                 <Switch id="time-limit" checked={timeLimit} onCheckedChange={setTimeLimit} />
               </div>
@@ -326,6 +339,7 @@ export default function CreateQuizPage() {
               <div>
                 <Label htmlFor="difficulty">Difficulty Level</Label>
                 <Select value={difficulty} onValueChange={setDifficulty}>
+                {/* <Select value={difficulty} onValueChange={}> */}
                   <SelectTrigger className="w-48">
                     <SelectValue />
                   </SelectTrigger>
@@ -349,7 +363,8 @@ export default function CreateQuizPage() {
                 </Button>
                 <Button type="button" onClick={addQuestion} className="flex items-center gap-2">
                   <Plus className="h-4 w-4" />
-                  Add Question
+                  <span className="max-sm:hidden">Add Question</span>
+                  
                 </Button>
               </div>
             </CardHeader>
@@ -390,27 +405,31 @@ export default function CreateQuizPage() {
                     />
                   </div>
 
-                  <div className="flex w-full justify-between items-center py-4">
-                    <div>
-                      <Label htmlFor="questionsCount">Generate No.of Questions</Label>
-                      <Input
-                        id="questionsCount"
-                        type="number"
-                        min="1"
-                        max="120"
-                        value={generateQuestionsCount}
-                        onChange={(e) => {
-                          e.target.value = (e.target.value) ? e.target.value : '1';
-                          setGenerateQuestionsCount(Number.parseInt(e.target.value));
-                        }}
-                        className="w-full"
-                      />
+                  {/* <div className="flex w-full justify-between items-center py-4"> */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-center w-full my-6">
+                    <div className="flex justify-center items-center w-full">
+                      <div className="w-full">
+                        <Label htmlFor="questionsCount">Generate No.of Questions</Label>
+                        <Input
+                          id="questionsCount"
+                          type="number"
+                          min="1"
+                          max="120"
+                          value={generateQuestionsCount}
+                          onChange={(e) => {
+                            e.target.value = (e.target.value) ? e.target.value : '1';
+                            setGenerateQuestionsCount(Number.parseInt(e.target.value));
+                          }}
+                          className="w-full md:w-48"
+                        />
+                      </div>
                     </div>
 
-                    <div>
+                    <div className="flex justify-center items-center w-full">
+                      <div className="w-full">
                       <Label htmlFor="generateDifficulty">Generate Difficulty Level</Label>
                       <Select value={generateDifficulty} onValueChange={setGenerateDifficulty}>
-                        <SelectTrigger className="w-48">
+                        <SelectTrigger className="w-full md:w-48">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -419,13 +438,16 @@ export default function CreateQuizPage() {
                           <SelectItem value="hard">Hard</SelectItem>
                         </SelectContent>
                       </Select>
+                      </div>
                     </div>
 
-                    <div>
+                    <div className="flex justify-center w-full">
+                      <div>
                       <Button type="button" onClick={generateAIHandler} className="flex items-center gap-2">
                         <Plus className="h-4 w-4" />
                         Generate Questions
                       </Button>
+                    </div>
                     </div>
 
                   </div>

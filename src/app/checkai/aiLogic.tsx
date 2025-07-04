@@ -60,7 +60,6 @@ export default function Home() {
 
         try {
             const data = await geminiResponse()
-            // console.log(data);
             setQuiz(data || 'No quiz returned');
         } catch (err) {
             console.error(err);

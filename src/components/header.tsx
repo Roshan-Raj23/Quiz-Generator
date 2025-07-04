@@ -4,20 +4,34 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
-import { Brain, Menu, X } from "lucide-react"
-import { useState } from "react"
+import { Brain, Menu, X , CircleUserRound} from "lucide-react"
+import { useEffect, useState } from "react"
+import { User } from "@/Model/User"
+import axios from "axios"
+
 
 export default function Header() {
   const pathname = usePathname()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-
+  const [currentUser , setCurrentUser] = useState<User>()
   const navItems = [
-    { href: "/", label: "Home" },
-    { href: "/create", label: "Create Quiz" },
-    { href: "/take", label: "Take Quiz" },
-    { href: "/my-quizzes", label: "My Quizzes" },
-    { href: "/about", label: "About" },
+    { href: "/", label: "Home", check: true},
+    { href: "/create", label: "Create Quiz", check: currentUser ? currentUser.isCreator : false},
+    { href: "/take", label: "Take Quiz", check: true},
+    { href: "/my-quizzes", label: "My Quizzes", check: currentUser ? currentUser.isCreator : false},
+    { href: "/about", label: "About", check: true},
   ]
+  
+
+  useEffect(() => {
+    getUser();
+  }, [pathname]);
+
+  const getUser = async () => {
+    const response = await axios.get('/api/getCurrentUser')
+
+    setCurrentUser(response.data.user);
+  }
 
   return (
     <nav className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
@@ -31,7 +45,7 @@ export default function Header() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => (
-              <Link
+              item.check && <Link
                 key={item.href}
                 href={item.href}
                 className={`text-sm font-medium transition-colors hover:text-primary ${
@@ -42,7 +56,17 @@ export default function Header() {
               </Link>
             ))}
             <ModeToggle />
-            <Button>Sign In</Button>
+
+            {currentUser ? 
+              <Link href="/profile">
+                <CircleUserRound />
+              </Link>
+              :
+              <Link href="/signin">
+                <Button>Sign In</Button>
+              </Link>
+            }
+
           </div>
 
           {/* Mobile menu button */}
@@ -71,7 +95,10 @@ export default function Header() {
                 </Link>
               ))}
               <div className="px-3 py-2">
-                <Button className="w-full">Sign In</Button>
+                <Link href="/signin">
+                  <Button className="w-full">Sign In</Button>
+                </Link>
+                
               </div>
             </div>
           </div>
