@@ -1,4 +1,4 @@
-import crypto from "crypto"
+// import crypto from "crypto"
 import { User } from "@/Model/User"
 import { redisClient } from "./redis"
 
@@ -47,8 +47,17 @@ export async function updateUserSessionExpiration(cookies: Pick<Cookies, "get" |
     setCookie(sessionId, cookies)
 }
 
+function generateSecureRandomHex(bytes: number): string {
+  const array = new Uint8Array(bytes);
+  crypto.getRandomValues(array);
+  return Array.from(array)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 export async function createUserSession(user: User , cookies: Cookies) {
-    const sessionId = crypto.randomBytes(512).toString("hex").normalize()
+    // const sessionId = crypto.randomBytes(512).toString("hex").normalize()
+    const sessionId = generateSecureRandomHex(512).normalize();
     await redisClient.set(`session:${sessionId}`, user , {
         ex: SESSION_EXPIRATION_SECONDS,
     })

@@ -1,7 +1,13 @@
+'use client'
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Brain, Zap, Users, Trophy, Clock, Target} from "lucide-react"
+import { useEffect, useState } from "react"
+import { User } from "@/Model/User"
+import { usePathname } from "next/navigation"
+import axios from "axios"
 
 export default function HomePage() {
   const features = [
@@ -37,6 +43,20 @@ export default function HomePage() {
     },
   ]
 
+  const pathname = usePathname()
+  const [currentUser , setCurrentUser] = useState<User>()
+
+  useEffect(() => {
+    getUser();
+  }, [pathname]);
+
+  const getUser = async () => {
+    const response = await axios.get('/api/getCurrentUser')
+
+    setCurrentUser(response.data.user);
+  }
+    
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       
@@ -57,9 +77,12 @@ export default function HomePage() {
               platform.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="text-lg px-8 py-3">
-                <Link href="/create">Create a Quiz</Link>
-              </Button>
+              {currentUser && currentUser.isCreator && 
+                <Button asChild size="lg" className="text-lg px-8 py-3">
+                  <Link href="/create">Create a Quiz</Link>
+                </Button>
+              }
+
               <Button asChild variant="outline" size="lg" className="text-lg px-8 py-3 bg-transparent">
                 <Link href="/take">Take a Quiz</Link>
               </Button>

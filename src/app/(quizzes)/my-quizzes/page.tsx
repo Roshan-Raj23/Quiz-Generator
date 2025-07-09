@@ -1,70 +1,36 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Plus, MoreVertical, Edit, Trash2, Share, Eye, Users, Clock, BarChart3 } from "lucide-react"
+import { Quiz } from "@/Model/Quiz"
+import axios from "axios"
+import { usePathname } from "next/navigation"
 
-interface Quiz {
-  id: string
-  title: string
-  description: string
-  questions: number
-  difficulty: "easy" | "medium" | "hard"
-  timeLimit?: number
-  responses: number
-  averageScore: number
-  createdAt: string
-  isPublished: boolean
-}
 
-const sampleQuizzes: Quiz[] = [
-  {
-    id: "1",
-    title: "JavaScript Fundamentals",
-    description: "Test your knowledge of JavaScript basics",
-    questions: 15,
-    difficulty: "medium",
-    timeLimit: 20,
-    responses: 45,
-    averageScore: 78,
-    createdAt: "2024-01-15",
-    isPublished: true,
-  },
-  {
-    id: "2",
-    title: "World Geography",
-    description: "How well do you know world capitals and countries?",
-    questions: 20,
-    difficulty: "hard",
-    responses: 23,
-    averageScore: 65,
-    createdAt: "2024-01-10",
-    isPublished: true,
-  },
-  {
-    id: "3",
-    title: "Movie Trivia",
-    description: "Test your knowledge of classic and modern films",
-    questions: 12,
-    difficulty: "easy",
-    timeLimit: 15,
-    responses: 0,
-    averageScore: 0,
-    createdAt: "2024-01-20",
-    isPublished: false,
-  },
-]
 
 export default function MyQuizzesPage() {
-  const [quizzes, setQuizzes] = useState<Quiz[]>(sampleQuizzes)
+  const pathname = usePathname();
+  const [myQuizzes, setMyQuizzes] = useState<Quiz[]>()
+  
+  useEffect(() => {
+    getAllQuizzes();
+  }, [pathname]);
 
-  const handleDelete = (quizId: string) => {
+  const getAllQuizzes = async () => {
+    const response = await axios.get('/api/getQuizzes')
+
+    setMyQuizzes(response.data.quiz);
+  }
+
+
+  const handleDelete = (quizId: number) => {
     if (confirm("Are you sure you want to delete this quiz?")) {
-      setQuizzes(quizzes.filter((quiz) => quiz.id !== quizId))
+      setMyQuizzes(myQuizzes?.filter((quiz) => quiz.id !== quizId))
     }
   }
 
@@ -110,7 +76,7 @@ export default function MyQuizzesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Quizzes</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{quizzes.length}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{myQuizzes?.length}</p>
                 </div>
                 <BarChart3 className="h-8 w-8 text-primary" />
               </div>
@@ -123,7 +89,7 @@ export default function MyQuizzesPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Responses</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {quizzes.reduce((sum, quiz) => sum + quiz.responses, 0)}
+                    {myQuizzes?.reduce((sum, quiz) => sum + quiz.noofResponses, 0)}
                   </p>
                 </div>
                 <Users className="h-8 w-8 text-primary" />
@@ -137,7 +103,7 @@ export default function MyQuizzesPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Published</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {quizzes.filter((quiz) => quiz.isPublished).length}
+                    {myQuizzes?.filter((quiz) => !quiz.isDraft).length}
                   </p>
                 </div>
                 <Eye className="h-8 w-8 text-primary" />
@@ -151,7 +117,8 @@ export default function MyQuizzesPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Avg. Score</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {Math.round(quizzes.reduce((sum, quiz) => sum + quiz.averageScore, 0) / quizzes.length) || 0}%
+                    {/* {Math.round(myQuizzes?.reduce((sum, quiz) => sum + quiz.averageScore, 0) / (myQuizzes ? myQuizzes.length: 1) || 0)}% */}
+                    0
                   </p>
                 </div>
                 <BarChart3 className="h-8 w-8 text-primary" />
@@ -160,9 +127,9 @@ export default function MyQuizzesPage() {
           </Card>
         </div>
 
-        {/* Quiz List */}
+        {/* All My Quizzes List */}
         <div className="space-y-6">
-          {quizzes.length === 0 ? (
+          {!myQuizzes ? (
             <Card>
               <CardContent className="p-12 text-center">
                 <div className="text-gray-400 mb-4">
@@ -176,34 +143,37 @@ export default function MyQuizzesPage() {
               </CardContent>
             </Card>
           ) : (
-            quizzes.map((quiz) => (
+            myQuizzes.map((quiz) => (
               <Card key={quiz.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <CardTitle className="text-xl">{quiz.title}</CardTitle>
+                        <CardTitle className="text-xl">{quiz.quizTitle}</CardTitle>
+                        <span className="text-sm items-center">[ID: {quiz.id}]</span>
                         <Badge className={getDifficultyColor(quiz.difficulty)}>{quiz.difficulty}</Badge>
-                        {!quiz.isPublished && <Badge variant="outline">Draft</Badge>}
+                        {quiz.isDraft && <Badge variant="outline">Draft</Badge>}
+                        {quiz.makeStrict && <Badge variant="outline">Strict</Badge>}
                       </div>
-                      <p className="text-gray-600 dark:text-gray-300 mb-3">{quiz.description}</p>
+                      <p className="text-gray-600 dark:text-gray-300 mb-3">{quiz.quizDescription}</p>
 
                       <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <BarChart3 className="h-4 w-4" />
-                          {quiz.questions} questions
+                          {quiz.questions.length} questions
                         </span>
                         {quiz.timeLimit && (
                           <span className="flex items-center gap-1">
                             <Clock className="h-4 w-4" />
-                            {quiz.timeLimit} min
+                            {quiz.timeLimitTotal} min
+                            {/* {quiz.timeLimitMinutes * quiz.questions.length} min */}
                           </span>
                         )}
                         <span className="flex items-center gap-1">
                           <Users className="h-4 w-4" />
-                          {quiz.responses} responses
+                          {quiz.noofResponses} responses
                         </span>
-                        {quiz.responses > 0 && <span>Avg. Score: {quiz.averageScore}%</span>}
+                        {quiz.noofResponses > 0 && <span>Avg. Score: {quiz.averageScore}%</span>}
                         <span>Created: {new Date(quiz.createdAt).toLocaleDateString()}</span>
                       </div>
                     </div>
@@ -227,12 +197,12 @@ export default function MyQuizzesPage() {
                             Edit
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleShare(quiz)}>
+                        <DropdownMenuItem>
                           <Share className="h-4 w-4 mr-2" />
                           Share
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => handleDelete(quiz.id)}
+                          // onClick={() => handleDelete(quiz.id)}
                           className="text-red-600 dark:text-red-400"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
@@ -246,6 +216,8 @@ export default function MyQuizzesPage() {
             ))
           )}
         </div>
+
+
       </div>
     </div>
   )

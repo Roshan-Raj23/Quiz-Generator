@@ -25,6 +25,7 @@ export default function Header() {
 
   useEffect(() => {
     getUser();
+    setIsMenuOpen(false);
   }, [pathname]);
 
   const getUser = async () => {
@@ -59,7 +60,7 @@ export default function Header() {
 
             {currentUser ? 
               <Link href="/profile">
-                <CircleUserRound />
+                <CircleUserRound size={28} />
               </Link>
               :
               <Link href="/signin">
@@ -95,10 +96,15 @@ export default function Header() {
                 </Link>
               ))}
               <div className="px-3 py-2">
-                <Link href="/signin">
-                  <Button className="w-full">Sign In</Button>
-                </Link>
-                
+                {currentUser ? 
+                  <Link href="/profile">
+                    <Button className="w-full">Profile</Button>
+                  </Link>
+                  :
+                  <Link href="/signin">
+                    <Button className="w-full">Sign In</Button>
+                  </Link>
+                }
               </div>
             </div>
           </div>

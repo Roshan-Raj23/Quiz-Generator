@@ -10,6 +10,7 @@ import Link from "next/link"
 import axios from "axios"
 import { toast } from 'sonner';
 import { redirect } from "next/navigation"
+import validation from "@/lib/authFormValidation"
 
 
 export default function Page() {
@@ -23,6 +24,17 @@ export default function Page() {
 
     const handleSignup = async (event: React.FormEvent) => {
         event.preventDefault();
+
+        if (password !== confirmPassword) { 
+            toast.warning("Passwords doesn't match");
+            return;
+        }
+
+        const valid = validation(userEmail , password);
+        if (!valid)
+            return;
+
+
         const response = await axios.post('/api/register' , {username , userEmail , password})
 
         const responseStatus = response.data.status;

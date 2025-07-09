@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Plus, Trash2, Eye, Save, X } from "lucide-react"
 import { toast } from 'sonner';
+import { redirect } from "next/navigation"
+import axios from "axios"
 
 interface Question {
   id: string
@@ -26,12 +28,25 @@ export default function CreateQuizPage() {
   const [timeLimit, setTimeLimit] = useState(false)
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(1)
   const [difficulty, setDifficulty] = useState("medium")
-  const [generateDifficulty, setGenerateDifficulty] = useState("medium")
   const [topic, setTopic] = useState("");
   const [useAIBox , setUseAIBox] = useState(false);
   const [generateQuestionsCount , setGenerateQuestionsCount] = useState(1);
   const [generatingResponse , setGeneratingResponse] = useState(false);
   const [generateQuestionsType , setGenerateQuestionsType] = useState<"multiple-choice" | "true-false">("multiple-choice")
+  const [isDraft , setisDraft] = useState(false);
+  const [makeStrict , setMakeStrict] = useState(false);
+
+
+  // When makeStrict is changed we also want to change timeLimit
+  useEffect(() => {
+    if (makeStrict)
+      setTimeLimit(makeStrict);
+  } , [makeStrict])
+  useEffect(() => {
+    if (!timeLimit)
+      setMakeStrict(timeLimit);
+  } , [timeLimit])
+
 
   const addQuestion = () => {
     const newQuestion: Question = {
@@ -60,29 +75,47 @@ export default function CreateQuizPage() {
     setQuestions(questions.filter((q) => q.id !== id))
   }
 
-  const handleSave = (event: React.FormEvent) => {
+  const handleSave = async (event: React.FormEvent | null) => {
+    if (event)
+      event.preventDefault();
 
     if (questions.length === 0) {
-      event.preventDefault();
-      toast.error("No questions added. Please add at least one question before saving");
+      toast.error("No questions added. Please add at least one question before moving ahead");
       return;
     }
+    toast.success("Saving quiz . . .")
 
-    // Save quiz logic here
-    console.log("Saving quiz:", { quizTitle, quizDescription, questions, timeLimit, timeLimitMinutes, difficulty })
-    alert("Quiz saved successfully!")
-  }
+    const timeLimitTotal = timeLimit ? timeLimitMinutes * questions.length : 1;
 
-  const handlePreview = (event: React.FormEvent) => {
-    event.preventDefault();
+    const quiz = {
+      quizTitle, 
+      quizDescription, 
+      questions, 
+      timeLimit, 
+      timeLimitMinutes, 
+      timeLimitTotal,
+      difficulty,
+      isDraft,
+      makeStrict
+    }
 
-    // Preview logic here
-    console.log("Previewing quiz")
-    alert("Preview functionality would open here!")
+    const response = await axios.post('/api/create' , {quiz});
+
+    const responseStatus = response.data.status;
+    if (responseStatus == 200) {
+      if (isDraft)
+        toast.success("Quiz drafted successfully!");
+      else 
+        toast.success("Quiz saved successfully!");
+      redirect("/my-quizzes")
+    } else if (responseStatus == 400) {
+      toast.warning(response.data.message);
+    } else {
+      toast.error("Something went wrong")
+    }
   }
 
   const resetAIPanel = () => { 
-    setGenerateDifficulty('medium');
     setTopic('');
     setUseAIBox(false);
     setGenerateQuestionsCount(1);
@@ -163,6 +196,7 @@ export default function CreateQuizPage() {
     // This will seperate the questions like 1. 2. 3.
     const parts = data.split(/\b\d+[:.]\s*/);
     const newQuestions: Question[] = [];
+    console.log(data);
 
     for(let i = 1;i< parts.length; i++) {
       const { question , options , correctAnswer } = parseQuestion(parts[i]);
@@ -198,7 +232,7 @@ export default function CreateQuizPage() {
     // askGemini(topic);
 
 
-    const prompt = `Generate a quiz on the topic of ${topic} with ${generateDifficulty} difficulty. The quiz should contain ${generateQuestionsCount} questions and be in the format of ${generateQuestionsType} only (e.g., multiple choice, true/false, etc.). For each question, provide a list of answer options, and explicitly state the correct answer clearly after all the options.`;
+    const prompt = `Generate a quiz on the topic of ${topic} with ${difficulty} difficulty. The quiz should contain ${generateQuestionsCount} questions and be in the format of ${generateQuestionsType} only (e.g., multiple choice, true/false, etc.). For each question, provide a list of answer options, and explicitly state the correct answer clearly after all the options.`;
 
     const payload = {
       "contents": [{
@@ -250,7 +284,7 @@ export default function CreateQuizPage() {
       return;
     }
 
-    toast.success("Processing");
+    toast.success("Generating Questions . . . ");
 
     try {
       await generateQuestions();
@@ -312,15 +346,23 @@ export default function CreateQuizPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
+                  <Label htmlFor="strict-quiz">Strick Quiz</Label>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Set this quiz as Strict Quiz</p>
+                </div>
+                <Switch id="strict-quiz" checked={makeStrict} onCheckedChange={setMakeStrict} />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
                   <Label htmlFor="time-limit">Time Limit</Label>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Set a time limit per question</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Set a time limit for this quiz</p>
                 </div>
                 <Switch id="time-limit" checked={timeLimit} onCheckedChange={setTimeLimit} />
               </div>
 
               {timeLimit && (
                 <div>
-                  <Label htmlFor="minutes">Time Limit (minutes)</Label>
+                  <Label htmlFor="minutes">Time Limit Per Question (minutes)</Label>
                   <Input
                     id="minutes"
                     type="number"
@@ -428,7 +470,7 @@ export default function CreateQuizPage() {
                     <div className="flex justify-center items-center w-full">
                       <div className="w-full">
                       <Label htmlFor="generateDifficulty">Generate Difficulty Level</Label>
-                      <Select value={generateDifficulty} onValueChange={setGenerateDifficulty}>
+                      <Select value={difficulty} onValueChange={setDifficulty}>
                         <SelectTrigger className="w-full md:w-48">
                           <SelectValue />
                         </SelectTrigger>
@@ -552,7 +594,7 @@ export default function CreateQuizPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-end">
-            <Button variant="outline" onClick={handlePreview} className="flex items-center gap-2 bg-transparent">
+            <Button variant="outline" type="submit" onClick={() => setisDraft(true)} className="flex items-center gap-2 bg-transparent">
               <Eye className="h-4 w-4" />
               Preview Quiz
             </Button>
