@@ -1,9 +1,8 @@
 "use client"
 
 import type React from "react"
-
-import { useEffect, useState } from "react"
-import { redirect, useRouter, useSearchParams } from "next/navigation"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -93,19 +92,8 @@ const featuredQuizzes = [
 const categories = ["All", "Programming", "Science", "Geography", "History", "Mathematics", "Literature", "Arts"]
 
 export default function TakeQuizPage() {
-  // const searchParams = useSearchParams();
-  // const error = searchParams.get('error');
-
-  // useEffect(() => {
-  //   if (error === 'notFound') {
-  //     toast.error('Data not found or invalid status');
-  //   }
-  // }, [error]);
-
   const router = useRouter()
-  // const [quizId, setQuizId] = useState("915879")
-  const [quizId, setQuizId] = useState("807841")
-  // const [quizId, setQuizId] = useState("175960")
+  const [quizId, setQuizId] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [searchTerm, setSearchTerm] = useState("")
 

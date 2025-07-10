@@ -10,12 +10,25 @@ import { Plus, MoreVertical, Edit, Trash2, Share, Eye, Users, Clock, BarChart3 }
 import { Quiz } from "@/Model/Quiz"
 import axios from "axios"
 import { usePathname } from "next/navigation"
-
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { toast } from "sonner"
 
 
 export default function MyQuizzesPage() {
   const pathname = usePathname();
   const [myQuizzes, setMyQuizzes] = useState<Quiz[]>()
+  const [showDeleteDialog , setShowDeleteDialog] = useState(false);
+  const [quizIdToDelete , setQuizIdToDelete] = useState(0);
+  const [quizTitleToDelete , setQuizTitleToDelete] = useState("");
   
   useEffect(() => {
     getAllQuizzes();
@@ -28,17 +41,30 @@ export default function MyQuizzesPage() {
   }
 
 
-  const handleDelete = (quizId: number) => {
-    if (confirm("Are you sure you want to delete this quiz?")) {
-      setMyQuizzes(myQuizzes?.filter((quiz) => quiz.id !== quizId))
+  const handleDelete = (quizId: number, quizTitle: string) => {
+    setQuizIdToDelete(quizId);
+    setQuizTitleToDelete(quizTitle);
+    setShowDeleteDialog(true);
+  }
+
+  const confirmDelete = async (quizId: number) => {
+    const response = await axios.post('/api/delete', { id: quizId });
+    if (response.data.status === 200) {
+      setShowDeleteDialog(false);
+      setQuizIdToDelete(0);
+      setQuizTitleToDelete("");
+      toast.success("Quiz deleted successfully");
+      getAllQuizzes();
+    } else {
+      toast.error("Error deleting quiz");
     }
   }
 
-  const handleShare = (quiz: Quiz) => {
-    const shareUrl = `${window.location.origin}/quiz/${quiz.id}`
-    navigator.clipboard.writeText(shareUrl)
-    alert("Quiz link copied to clipboard!")
-  }
+  // const handleShare = (quiz: Quiz) => {
+  //   const shareUrl = `${window.location.origin}/quiz/${quiz.id}`
+  //   navigator.clipboard.writeText(shareUrl)
+  //   alert("Quiz link copied to clipboard!")
+  // }
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -150,17 +176,19 @@ export default function MyQuizzesPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <CardTitle className="text-xl">{quiz.quizTitle}</CardTitle>
-                        <span className="text-sm items-center">[ID: {quiz.id}]</span>
+                        {/* <span className="text-sm items-center">[ID: {quiz.id}]</span> */}
                         <Badge className={getDifficultyColor(quiz.difficulty)}>{quiz.difficulty}</Badge>
                         {quiz.isDraft && <Badge variant="outline">Draft</Badge>}
                         {quiz.makeStrict && <Badge variant="outline">Strict</Badge>}
+                        <Badge variant="outline">{quiz.id}</Badge>
                       </div>
                       <p className="text-gray-600 dark:text-gray-300 mb-3">{quiz.quizDescription}</p>
 
                       <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <BarChart3 className="h-4 w-4" />
-                          {quiz.questions.length} questions
+                          {quiz.questions.length} question
+                          {quiz.questions.length > 1 ? "s" : ""}
                         </span>
                         {quiz.timeLimit && (
                           <span className="flex items-center gap-1">
@@ -186,13 +214,13 @@ export default function MyQuizzesPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem asChild>
-                          <Link href={`/quiz/${quiz.id}`} className="flex items-center gap-2">
+                          <Link href={`/take-quiz/${quiz.id}`} className="flex items-center gap-2">
                             <Eye className="h-4 w-4" />
                             View Quiz
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/edit/${quiz.id}`} className="flex items-center gap-2">
+                          <Link href={`/create/?quizId=${quiz.id}`} className="flex items-center gap-2">
                             <Edit className="h-4 w-4" />
                             Edit
                           </Link>
@@ -202,7 +230,7 @@ export default function MyQuizzesPage() {
                           Share
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          // onClick={() => handleDelete(quiz.id)}
+                          onClick={() => handleDelete(quiz.id, quiz.quizTitle)}
                           className="text-red-600 dark:text-red-400"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
@@ -217,8 +245,28 @@ export default function MyQuizzesPage() {
           )}
         </div>
 
-
       </div>
+
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex justify-center">Delete Quiz?</AlertDialogTitle>
+          <AlertDialogDescription>
+            <span>
+              {/* Are you sure you want to delete */}
+              Are you sure you want to delete quiz : <span className="font-bold">{quizTitleToDelete}</span> ?
+            </span>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={() => confirmDelete(quizIdToDelete)}>Delete Quiz</AlertDialogAction>
+          {/* <AlertDialogAction>Delete Quiz</AlertDialogAction> */}
+        </AlertDialogFooter>
+      </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

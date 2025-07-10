@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document , Types } from 'mongoose';
 
 export interface Question extends Document {
+    id: string;
     question: string;
     options: string[];
     type: "multiple-choice" | "true-false";
@@ -8,6 +9,11 @@ export interface Question extends Document {
 }
 
 const QuestionSchema: Schema<Question> = new mongoose.Schema({
+    id: {
+        type: String,
+        required: true,
+        unique: true
+    },
     question: {
         type: String,
         required: true,

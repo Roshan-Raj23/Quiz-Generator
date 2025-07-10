@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Plus, Trash2, Eye, Save, X } from "lucide-react"
 import { toast } from 'sonner';
-import { redirect } from "next/navigation"
+import { redirect, useRouter, useSearchParams } from "next/navigation"
 import axios from "axios"
 
 interface Question {
@@ -22,6 +22,9 @@ interface Question {
 }
 
 export default function CreateQuizPage() {
+  const router = useRouter();
+  const [id , setId] = useState("");
+  const [isEdit , setIsEdit] = useState(false);
   const [quizTitle, setQuizTitle] = useState("")
   const [quizDescription, setQuizDescription] = useState("")
   const [questions, setQuestions] = useState<Question[]>([])
@@ -47,6 +50,37 @@ export default function CreateQuizPage() {
       setMakeStrict(timeLimit);
   } , [timeLimit])
 
+  const searchParams = useSearchParams();
+  const quizId = searchParams.get('quizId');
+
+  useEffect(() => {
+    if (quizId) {
+      getQuizDetails(quizId);
+    }
+  }, [quizId]);
+
+  const getQuizDetails = async (quizId: string) => {
+    const response = await axios.post('/api/isQuiz' , {id : quizId})
+    const responseStatus = response.data.status;
+    const currentQuiz = response.data.quiz;
+    if (responseStatus == 200 && response.data.find) {
+      setId(quizId);
+      setIsEdit(true);
+      setQuizTitle(currentQuiz.quizTitle);
+      setQuizDescription(currentQuiz.quizDescription);
+      setQuestions(currentQuiz.questions);
+      setTimeLimit(currentQuiz.timeLimit);
+      setTimeLimitMinutes(currentQuiz.timeLimitMinutes);
+      setDifficulty(currentQuiz.difficulty);
+      setisDraft(currentQuiz.isDraft);
+      setMakeStrict(currentQuiz.makeStrict);
+
+    } else {
+      toast.error("No quiz with this Quiz ID");
+      // router.push('/take')
+    }
+
+  }
 
   const addQuestion = () => {
     const newQuestion: Question = {
@@ -99,11 +133,13 @@ export default function CreateQuizPage() {
       makeStrict
     }
 
-    const response = await axios.post('/api/create' , {quiz});
-
+    const response = await axios.post('/api/create' , {quiz , isEdit , id});
+    
     const responseStatus = response.data.status;
     if (responseStatus == 200) {
-      if (isDraft)
+      if (isEdit)
+        toast.success("Quiz updated successfully!");
+      else if (isDraft)
         toast.success("Quiz drafted successfully!");
       else 
         toast.success("Quiz saved successfully!");
@@ -232,7 +268,11 @@ export default function CreateQuizPage() {
     // askGemini(topic);
 
 
-    const prompt = `Generate a quiz on the topic of ${topic} with ${difficulty} difficulty. The quiz should contain ${generateQuestionsCount} questions and be in the format of ${generateQuestionsType} only (e.g., multiple choice, true/false, etc.). For each question, provide a list of answer options, and explicitly state the correct answer clearly after all the options.`;
+    // const prompt = `Generate a quiz on the topic of ${topic} with ${difficulty} difficulty. The quiz should contain ${generateQuestionsCount} questions and be in the format of ${generateQuestionsType} only (e.g., multiple choice, true/false, etc.). For each question, provide a list of answer options, and explicitly state the correct answer clearly after all the options.`;
+    const prompt = `Generate a quiz on the topic of ${topic} with ${difficulty} difficulty. The quiz should contain ${generateQuestionsCount} questions and be in the format of ${generateQuestionsType} only (e.g., multiple choice, true/false, etc.).
+
+    - If the question format is multiple choice, provide exactly 4 answer options.
+    - For all question types, clearly state the correct answer after listing the options.`;
 
     const payload = {
       "contents": [{
@@ -596,7 +636,7 @@ export default function CreateQuizPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-end">
             <Button variant="outline" type="submit" onClick={() => setisDraft(true)} className="flex items-center gap-2 bg-transparent">
               <Eye className="h-4 w-4" />
-              Preview Quiz
+              Draft Quiz
             </Button>
             <Button type="submit" className="flex items-center gap-2">
               <Save className="h-4 w-4" />

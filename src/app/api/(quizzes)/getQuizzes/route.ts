@@ -1,4 +1,5 @@
-import QuizModel from "@/Model/Quiz";
+import QuizModel, { Quiz } from "@/Model/Quiz";
+import { User } from "@/Model/User";
 import connectToDatabase from "@/lib/db";
 import { getUserFromSession } from "@/lib/sessions";
 import { cookies } from "next/headers";
@@ -9,20 +10,11 @@ export async function GET() {
     try {
         connectToDatabase();
 
-        const currentUser = await getUserFromSession(await cookies());
-        const quiz_ids = currentUser.quizzes;
-        let currentQuiz;
-
-        const quiz = [];
-
-        for(let i = 0;i< quiz_ids.length;i++){
-            currentQuiz = await QuizModel.findOne({ _id : quiz_ids[i]})
-            if (currentQuiz)
-                quiz.push(currentQuiz);
-        }
-
-        return NextResponse.json({quiz , status: 200});
-    } catch {
+        const currentUser = await getUserFromSession(await cookies()) as User;
+        const quizzes = await QuizModel.find({ creator: currentUser._id }) as Quiz[];
+        return NextResponse.json({ quiz: quizzes, status: 200 });
+    } catch (err) {
+        console.error(err);
         return NextResponse.json({error: "Error in server" , status: 500})
         // return NextResponse.json({error: err , status: 500})
     }

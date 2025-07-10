@@ -293,13 +293,12 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
   // }
 
   const toggleFlag = () => {
-    const currentQuestion = getCurrentQuestion()
     setFlaggedQuestions((prev) => {
       const newSet = new Set(prev)
-      if (newSet.has(currentQuestion?.id)) {
-        newSet.delete(currentQuestion?.id)
+      if (newSet.has(currentQuestionIndex)) {
+        newSet.delete(currentQuestionIndex)
       } else {
-        newSet.add(currentQuestion?.id)
+        newSet.add(currentQuestionIndex)
       }
       return newSet
     })
@@ -481,7 +480,7 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
 
   const currentQuestion = getCurrentQuestion()
   const isLastQuestion = quiz ? currentQuestionIndex === quiz.questions.length - 1 : true;
-  const isFlagged = flaggedQuestions.has(currentQuestion?.id)
+  const isFlagged = flaggedQuestions.has(currentQuestionIndex)
 
 
   return (
