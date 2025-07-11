@@ -21,7 +21,7 @@ export default function ProfilePage() {
 
   const pathname = usePathname()
   const router = useRouter();
-  const [isEditing, setIsEditing] = useState(false)
+  // const [isEditing, setIsEditing] = useState(false)
   const [profileData, setProfileData] = useState({
     firstName: "Sarah",
     lastName: "Johnson",
@@ -88,7 +88,7 @@ export default function ProfilePage() {
   const handleSave = () => {
     // Save profile data
     console.log("Saving profile:", profileData)
-    setIsEditing(false)
+    // setIsEditing(false)
     alert("Profile updated successfully!")
   }
 
