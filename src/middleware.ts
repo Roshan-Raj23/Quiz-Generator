@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { getUserFromSession, updateUserSessionExpiration } from "./lib/sessions"
+import { User } from "./Model/User"
 
 const loginRequiredRoutes = ["/take" , "/profile"]
 const creatorRequiredRoutes = ["/create" , "/my-quizzes"]
@@ -18,7 +19,7 @@ export async function middleware(request: NextRequest) {
 }
 
 async function middlewareAuth(request: NextRequest) {
-  const user = await getUserFromSession(request.cookies)
+  const user = await getUserFromSession(request.cookies) as User;
   if (loginRequiredRoutes.includes(request.nextUrl.pathname)) {
     if (user == null) {
       return NextResponse.redirect(new URL("/signin", request.url))
