@@ -9,13 +9,11 @@ import { Eye , EyeOff } from "lucide-react"
 import Link from "next/link"
 import axios from "axios"
 import { toast } from 'sonner';
-import { useRouter } from "next/navigation"
 import validation from "@/lib/authFormValidation"
 
 
 export default function Page() {
 
-    const router = useRouter();
     const [username , setUsername] = useState("");
     const [userEmail , setUserEmail] = useState("");
     const [password , setPassword] = useState("");
@@ -41,9 +39,9 @@ export default function Page() {
         const responseStatus = response.data.status;
         if (responseStatus == 200) {
             toast.success("Logged In");
-            // Use setTimeout to ensure cookie is set before navigation
+            // Reload to ensure session is properly established
             setTimeout(() => {
-                router.push("/");
+                window.location.href = "/";
             }, 100);
         } else if (responseStatus == 400) {
             toast.warning(response.data.message);
