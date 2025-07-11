@@ -18,15 +18,14 @@ export async function middleware(request: NextRequest) {
 }
 
 async function middlewareAuth(request: NextRequest) {
+  const user = await getUserFromSession(request.cookies)
   if (loginRequiredRoutes.includes(request.nextUrl.pathname)) {
-    const user = await getUserFromSession(request.cookies)
     if (user == null) {
       return NextResponse.redirect(new URL("/signin", request.url))
     }
   }
 
   if (creatorRequiredRoutes.includes(request.nextUrl.pathname)) {
-    const user = await getUserFromSession(request.cookies)
     if (user == null) {
       return NextResponse.redirect(new URL("/sign-in", request.url))
     } else if (user.isCreator == false) {
@@ -35,6 +34,10 @@ async function middlewareAuth(request: NextRequest) {
   }
 
   if (request.nextUrl.pathname.startsWith('/take-quiz/')) {
+    if (user == null) {
+      return NextResponse.redirect(new URL("/signin", request.url))
+    }
+
     const { pathname } = request.nextUrl;
     const pathSegments = pathname.split('/');
 
@@ -50,6 +53,7 @@ async function middlewareAuth(request: NextRequest) {
     const response = await fetch(url , {
         method: 'POST',
         headers: {
+          cookie: request.headers.get('cookie') || '',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ id }),
@@ -58,7 +62,7 @@ async function middlewareAuth(request: NextRequest) {
 
     if (data.status !== 200 || !data.find){
       
-      return NextResponse.redirect(new URL("/take", request.url));
+      return NextResponse.redirect(new URL("/take?error=notFound", request.url));
     }
   }
 }

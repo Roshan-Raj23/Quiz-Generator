@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Plus, Trash2, Eye, Save, X } from "lucide-react"
 import { toast } from 'sonner';
-import { redirect, useRouter, useSearchParams } from "next/navigation"
+import { redirect, useSearchParams } from "next/navigation"
 import axios from "axios"
 
 interface Question {
@@ -22,7 +22,6 @@ interface Question {
 }
 
 export default function CreateQuizPage() {
-  const router = useRouter();
   const [id , setId] = useState("");
   const [isEdit , setIsEdit] = useState(false);
   const [quizTitle, setQuizTitle] = useState("")
@@ -34,7 +33,7 @@ export default function CreateQuizPage() {
   const [topic, setTopic] = useState("");
   const [useAIBox , setUseAIBox] = useState(false);
   const [generateQuestionsCount , setGenerateQuestionsCount] = useState(1);
-  const [generatingResponse , setGeneratingResponse] = useState(false);
+  // const [generatingResponse , setGeneratingResponse] = useState(false);
   const [generateQuestionsType , setGenerateQuestionsType] = useState<"multiple-choice" | "true-false">("multiple-choice")
   const [isDraft , setisDraft] = useState(false);
   const [makeStrict , setMakeStrict] = useState(false);
@@ -93,7 +92,7 @@ export default function CreateQuizPage() {
     setQuestions([...questions, newQuestion])
   }
 
-  const updateQuestion = (id: string, field: keyof Question, value: any) => {
+  const updateQuestion = (id: string, field: keyof Question, value: number | string) => {
     setQuestions(questions.map((q) => (q.id === id ? { ...q, [field]: value } : q)))
   }
 
@@ -139,10 +138,14 @@ export default function CreateQuizPage() {
     if (responseStatus == 200) {
       if (isEdit)
         toast.success("Quiz updated successfully!");
-      else if (isDraft)
+      else if (isDraft) {
         toast.success("Quiz drafted successfully!");
-      else 
+      } else 
         toast.success("Quiz saved successfully!");
+
+      if (isDraft)
+        redirect("/take-quiz/" + response.data.quiz.id);
+      
       redirect("/my-quizzes")
     } else if (responseStatus == 400) {
       toast.warning(response.data.message);
@@ -155,7 +158,7 @@ export default function CreateQuizPage() {
     setTopic('');
     setUseAIBox(false);
     setGenerateQuestionsCount(1);
-    setGeneratingResponse(false);
+    // setGeneratingResponse(false);
     setGenerateQuestionsType("multiple-choice");
   }
 
@@ -284,7 +287,7 @@ export default function CreateQuizPage() {
 
     try {
 
-      const url = process.env.NEXT_PUBLIC_GEMINI_URL;
+      const url = process.env.NEXT_PUBLIC_GEMINI_URL || "";
   
       let response = await fetch(url , {
         method: 'POST',
@@ -301,7 +304,7 @@ export default function CreateQuizPage() {
   }
 
   const generateQuestions = async () => {
-    setGeneratingResponse(true);
+    // setGeneratingResponse(true);
 
     try {
       const data = await geminiResponse()
@@ -310,7 +313,7 @@ export default function CreateQuizPage() {
       console.error(err);
       toast.error('Error generating quiz');
     } finally {
-      setGeneratingResponse(false);
+      // setGeneratingResponse(false);
     }
   };
 

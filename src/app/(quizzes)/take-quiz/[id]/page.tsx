@@ -72,7 +72,7 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
   const [timeLeft, setTimeLeft] = useState(60)
   const [timePerQuestion , setTimePerQuestion] = useState(60);
   const [timeLeftPerQuestion , setTimeLeftPerQuestion] = useState(60);
-  const [isPaused, setIsPaused] = useState(false)
+  // const [isPaused, setIsPaused] = useState(false)
   const [isStrict , setIsStrict] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false)
   const [showSubmitDialog, setShowSubmitDialog] = useState(false)
@@ -122,8 +122,10 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
       if (currentQuiz.timeLimit) 
         setTimeLeft(currentQuiz.timeLimitTotal * 60);
       
-      if (currentQuiz.makeStrict) 
+      if (currentQuiz.makeStrict) {
         setTimePerQuestion(currentQuiz.timeLimitMinutes * 60);
+        setTimeLeftPerQuestion(currentQuiz.timeLimitMinutes * 60);
+      }
     } else {
       toast.error("No quiz with this Quiz ID");
       router.push('/take')
@@ -140,13 +142,13 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
   
   // Timer effect
   useEffect(() => {
-    if (timeLeft > 0 && !isPaused && !isCompleted && timedQuiz) {
+    if (timeLeft > 0 && !isCompleted && timedQuiz) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000)
       return () => clearTimeout(timer)
     } else if (timeLeft === 0 && !isCompleted) {
       handleAutoSubmit()
     }
-  }, [timeLeft, isPaused, isCompleted , timedQuiz])
+  }, [timeLeft, isCompleted , timedQuiz])
 
   
   const handleNext = useCallback(() => {
@@ -639,7 +641,8 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
                     }`}
                   >
                     <Clock className="h-4 w-4" />
-                    <span className="font-mono font-semibold">{isPaused ? "PAUSED" : formatTime(timeLeft)}</span>
+                    <span className="font-mono font-semibold">{formatTime(timeLeft)}</span>
+                    {/* <span className="font-mono font-semibold">{isPaused ? "PAUSED" : formatTime(timeLeft)}</span> */}
                   </div>
                 </div>
               }

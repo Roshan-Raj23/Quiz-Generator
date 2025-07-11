@@ -1,11 +1,10 @@
-import mongoose , { Schema, Types } from "mongoose";
+import mongoose from "mongoose";
 
 export interface User extends Document {
     username: string;
     email: string;
     password: string;
     isCreator: boolean;
-    quizzes?: [Types.ObjectId];
 }
 
 const userSchema = new mongoose.Schema({
@@ -25,10 +24,6 @@ const userSchema = new mongoose.Schema({
     isCreator: {
         type: Boolean,
         default: false,
-    }, 
-    quizzes: { 
-        type: [Schema.Types.ObjectId],
-        ref: 'Quiz'
     },
 })
 

@@ -1,8 +1,8 @@
 import connectToDatabase from "@/lib/db";
+import { getUserFromSession } from "@/lib/sessions";
 import QuizModel from "@/Model/Quiz";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-// import { getUserFromSession } from "@/lib/sessions";
-// import { cookies } from "next/headers";
 
 
 export async function POST(request: Request) {
@@ -12,23 +12,17 @@ export async function POST(request: Request) {
         const { id } = await request.json()
 
         const quiz = await QuizModel.findOne({ id })
+        const currentUser = await getUserFromSession(await cookies());
         let check = false;
 
         if (quiz) {
             check = !quiz.isDraft;
-            // if (quiz.isDraft) {
-            //     const currentUser = await getUserFromSession(await cookies());
-
-            //     if (currentUser) {
-            //         // console.log(currentUser._id);                
-            //         // console.log(quiz.creator?.toHexString());      
-            //         check = (currentUser._id == quiz.creator?.toHexString());
-            //         if (check)
-            //             return NextResponse.json({message : "Answer in find" , quiz , find: true , status: 200});
-            //     } else 
-            //         check = false;
-            // } else 
-            //     check = true;
+            if (quiz.isDraft) {
+                if (currentUser) 
+                    check = (currentUser._id == quiz.creator?.toHexString());
+                
+            } else 
+                check = true;
         }
 
         return NextResponse.json({message : "Answer in find" , quiz , find: check , status: 200});

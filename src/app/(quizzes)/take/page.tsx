@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -92,6 +92,16 @@ const featuredQuizzes = [
 const categories = ["All", "Programming", "Science", "Geography", "History", "Mathematics", "Literature", "Arts"]
 
 export default function TakeQuizPage() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
+
+  useEffect(() => {
+    if (error === "notFound") {
+      toast.error("Quiz not found!");
+    }
+  }, [error]);
+
+
   const router = useRouter()
   const [quizId, setQuizId] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
@@ -241,7 +251,7 @@ export default function TakeQuizPage() {
             {filteredQuizzes.map((quiz) => (
               <Card key={quiz.id} className="hover:shadow-xl transition-all duration-300 group cursor-pointer">
                 <div className="relative overflow-hidden">
-                  <img
+                  <img 
                     src={quiz.thumbnail || "/placeholder.svg"}
                     alt={quiz.title}
                     className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"

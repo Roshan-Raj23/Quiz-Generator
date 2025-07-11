@@ -37,7 +37,7 @@ export async function POST(request: Request) {
             });
 
             await newQuiz.save();
-            return NextResponse.json({message: "Quiz created sucessfully" , status: 200});
+            return NextResponse.json({message: "Quiz created sucessfully" , quiz: newQuiz , status: 200});
         } else {
             const updatedQuiz = await QuizModel.findOneAndUpdate(
                 { id }, // Find by quiz id
@@ -55,9 +55,9 @@ export async function POST(request: Request) {
                 { new: true } // Return the updated document
             );
             if (!updatedQuiz) {
-                return NextResponse.json({ error: "Quiz not found", status: 404 });
+                return NextResponse.json({ error: "Quiz not found", quiz: null , status: 404 });
             }
-            return NextResponse.json({ message: "Quiz updated successfully", status: 200 });
+            return NextResponse.json({ message: "Quiz updated successfully", quiz: updatedQuiz , status: 200 });
         }
         
 
