@@ -8,11 +8,12 @@ import { useState } from "react"
 import { Eye , EyeOff } from "lucide-react"
 import Link from "next/link"
 import axios from "axios"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { toast } from 'sonner';
 
 export default function Page() {
 
+    const router = useRouter();
     const [username , setUsername] = useState("");
     const [password , setPassword] = useState("");
     const [viewPassword , setViewPassword] = useState(false);
@@ -24,7 +25,10 @@ export default function Page() {
         const responseStatus = response.data.status;
         if (responseStatus == 200) {
             toast.success("Logged In");
-            redirect("/")
+            // Use setTimeout to ensure cookie is set before navigation
+            setTimeout(() => {
+                router.push("/");
+            }, 100);
         } else if (responseStatus == 400) {
             toast.warning(response.data.message);
         } else {
