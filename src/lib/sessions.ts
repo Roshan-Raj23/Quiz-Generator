@@ -14,6 +14,7 @@ export type Cookies = {
         secure?: boolean
         httpOnly?: boolean
         sameSite?: "strict" | "lax"
+        path?: string
         expires?: number
         }
     ) => void
@@ -66,22 +67,33 @@ export async function createUserSession(user: User , cookies: Cookies) {
 }
 
 export async function getUserFromSession(cookies: Pick<Cookies, "get">) {
-    const sessionId = cookies.get(COOKIE_SESSION_KEY)?.value
-    if (sessionId == null) return null
+    try {
+        const sessionId = cookies.get(COOKIE_SESSION_KEY)?.value
+        if (sessionId == null) return null
 
-    return getUserSessionById(sessionId)
+        return await getUserSessionById(sessionId)
+    } catch (error) {
+        console.error('Error getting user from session:', error)
+        return null
+    }
 }
 
 async function getUserSessionById(sessionId: string) {
-    const rawUser = await redisClient.get(`session:${sessionId}`)
-    return rawUser;
+    try {
+        const rawUser = await redisClient.get(`session:${sessionId}`)
+        return rawUser;
+    } catch (error) {
+        console.error('Error getting user session by ID:', error)
+        return null
+    }
 }
 
 async function setCookie(sessionId: string, cookies: Pick<Cookies, "set">) {
     cookies.set(COOKIE_SESSION_KEY, sessionId, {
-        secure: true,
+        secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         sameSite: "lax",
+        path: "/",
         expires: Date.now() + SESSION_EXPIRATION_SECONDS * 1000,
     })
 }

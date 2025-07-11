@@ -2,7 +2,8 @@ import { NextResponse, type NextRequest } from "next/server"
 import { getUserFromSession, updateUserSessionExpiration } from "./lib/sessions"
 import { User } from "./Model/User"
 
-const loginRequiredRoutes = ["/take" , "/profile"]
+const noLoginRequiredRoutes = ["/signin" , "/signup"]
+const loginRequiredRoutes = ["/take" , "/profile"];
 const creatorRequiredRoutes = ["/create" , "/my-quizzes"]
 
 export async function middleware(request: NextRequest) {
@@ -21,8 +22,18 @@ export async function middleware(request: NextRequest) {
 async function middlewareAuth(request: NextRequest) {
 
   try { 
+    // Skip middleware for API routes to avoid conflicts
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+      return null
+    }
 
     const user = await getUserFromSession(request.cookies) as User;
+    if (noLoginRequiredRoutes.includes(request.nextUrl.pathname)) {
+      if (user) {
+        return NextResponse.redirect(new URL("/", request.url))
+      }
+    }
+
     if (loginRequiredRoutes.includes(request.nextUrl.pathname)) {
       if (user == null) {
         return NextResponse.redirect(new URL("/signin", request.url))
@@ -48,38 +59,21 @@ async function middlewareAuth(request: NextRequest) {
       if (pathSegments.length < 3) {
         return NextResponse.redirect(new URL("/take", request.url))
       }
-      const id = pathSegments[2];
-  
-  
-      const url = request.nextUrl.clone();
-      url.pathname = '/api/isQuiz';
-
-      console.log(url);
-  
-      const response = await fetch(url , {
-          method: 'POST',
-          headers: {
-            cookie: request.headers.get('cookie') || '',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ id }),
-        });
-      const data = await response.json();
-  
-      if (data.status !== 200 || !data.find){
-        
-        return NextResponse.redirect(new URL("/take?error=notFound", request.url));
-      }
     }
   } catch (err) {
     console.error('Middleware error:', err)
+    return null
   }
 
 }
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // // Skip Next.js internals and all static files, unless found in search params
+    // "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+
+    
+    // Skip Next.js internals, API routes, and all static files
+    "/((?!_next|api|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
   ],
 }
