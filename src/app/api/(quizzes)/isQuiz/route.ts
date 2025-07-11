@@ -1,6 +1,7 @@
 import connectToDatabase from "@/lib/db";
 import { getUserFromSession } from "@/lib/sessions";
 import QuizModel from "@/Model/Quiz";
+import { User } from "@/Model/User";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -12,7 +13,7 @@ export async function POST(request: Request) {
         const { id } = await request.json()
 
         const quiz = await QuizModel.findOne({ id })
-        const currentUser = await getUserFromSession(await cookies());
+        const currentUser = await getUserFromSession(await cookies()) as User;
         let check = false;
 
         if (quiz) {

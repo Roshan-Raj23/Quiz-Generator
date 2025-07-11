@@ -289,14 +289,14 @@ export default function CreateQuizPage() {
 
       const url = process.env.NEXT_PUBLIC_GEMINI_URL || "";
   
-      let response = await fetch(url , {
+      const response = await fetch(url , {
         method: 'POST',
         body: JSON.stringify(payload),
         // 'Content-Type' : 'application/json'
       })
   
-      response = await response.json();
-      return response.candidates[0].content.parts[0].text;
+      const data = await response.json();
+      return data.candidates[0].content.parts[0].text;
     } catch (error) {
       // toast.error('Error generating quiz');
       throw error;
