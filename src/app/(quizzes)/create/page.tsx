@@ -19,6 +19,9 @@ interface Question {
   type: "multiple-choice" | "true-false"
   options: string[]
   correctAnswer: number
+  positivePoints: number
+  negativePoints: number
+  difficulty: string
 }
 
 export default function CreateQuizPage() {
@@ -34,9 +37,18 @@ export default function CreateQuizPage() {
   const [useAIBox , setUseAIBox] = useState(false);
   const [generateQuestionsCount , setGenerateQuestionsCount] = useState(1);
   // const [generatingResponse , setGeneratingResponse] = useState(false);
+  const [generateDifficulty , setGenerateDifficulty] = useState("medium");
   const [generateQuestionsType , setGenerateQuestionsType] = useState<"multiple-choice" | "true-false">("multiple-choice")
   const [isDraft , setisDraft] = useState(false);
   const [makeStrict , setMakeStrict] = useState(false);
+  const [easyPlusPoints , setEasyPlusPoints] = useState(4);
+  const [easyNegPoints , setEasyNegPoints] = useState(0);
+  const [mediumPlusPoints , setMediumPlusPoints] = useState(4);
+  const [mediumNegPoints , setMediumNegPoints] = useState(1);
+  const [hardPlusPoints , setHardPlusPoints] = useState(4);
+  const [hardNegPoints , setHardNegPoints] = useState(2);
+
+
 
 
   // When makeStrict is changed we also want to change timeLimit
@@ -88,6 +100,9 @@ export default function CreateQuizPage() {
       type: "multiple-choice",
       options: ["", "", "", ""],
       correctAnswer: 0,
+      positivePoints: 4,
+      negativePoints: 0,
+      difficulty: difficulty
     }
     setQuestions([...questions, newQuestion])
   }
@@ -158,6 +173,7 @@ export default function CreateQuizPage() {
     setTopic('');
     setUseAIBox(false);
     setGenerateQuestionsCount(1);
+    setGenerateDifficulty(difficulty);
     // setGeneratingResponse(false);
     setGenerateQuestionsType("multiple-choice");
   }
@@ -231,22 +247,84 @@ export default function CreateQuizPage() {
     return { question , options , correctAnswer };
   }
 
+  const parseTrueFalseQuestion = (input: string) => {
+    const idx = input.search(/Correct Answer/);
+    const n = input.length;
+    let correctAnswer = 1 , question = "";
+
+    for (let j = idx+14;j< n;j++) {
+      if (/^[a-zA-Z]$/.test(input[j])) {
+        // Check if the text following is "true"
+        // const answerText = input.slice(j).trim().toLowerCase();
+        if (input[j] == 't' || input[j] == 'T')
+          correctAnswer = 0;
+        else if (input[j] == 'f' || input[j] == 'F')
+          correctAnswer = 1;
+        else 
+          continue;
+        break;
+      }
+    }
+
+    for (let i = 0;i< n;i++) {
+      if (input[i] == '\n') {
+        question = input.slice(0, i);
+        break;
+      }
+    }
+
+    question = cleanString(question);
+    
+    return { question , correctAnswer };
+  }
+
   const generateQuizAI = (data: string): void => {
     // This will seperate the questions like 1. 2. 3.
     const parts = data.split(/\b\d+[:.]\s*/);
     const newQuestions: Question[] = [];
-    console.log(data);
+    let pos = 4 , neg = 0;
+
+    if (generateDifficulty == "easy") {
+      pos = easyPlusPoints;
+      neg = easyNegPoints;
+    } else if (generateDifficulty == "medium") {
+      pos = mediumPlusPoints;
+      neg = mediumNegPoints;
+    } else if (generateDifficulty == "hard") {
+      pos = hardPlusPoints;
+      neg = hardNegPoints;
+    }
+
+    // console.log(data);
 
     for(let i = 1;i< parts.length; i++) {
-      const { question , options , correctAnswer } = parseQuestion(parts[i]);
 
-      newQuestions.push({
-        id: (Date.now() * i).toString(),
-        question,
-        type: generateQuestionsType,
-        options,
-        correctAnswer: correctAnswer,
-      });
+      if (generateQuestionsType == "multiple-choice") {
+        const { question , options , correctAnswer } = parseQuestion(parts[i]);
+        newQuestions.push({
+          id: (Date.now() * i).toString(),
+          question,
+          type: generateQuestionsType,
+          options,
+          correctAnswer: correctAnswer,
+          positivePoints: pos,
+          negativePoints: neg,
+          difficulty: generateDifficulty
+        });
+      } else {
+        const { question , correctAnswer } = parseTrueFalseQuestion(parts[i]);
+        newQuestions.push({
+          id: (Date.now() * i).toString(),
+          question,
+          type: generateQuestionsType,
+          options: [],
+          correctAnswer: correctAnswer,
+          positivePoints: pos,
+          negativePoints: neg,
+          difficulty: generateDifficulty
+        });
+      }
+
     }
     setQuestions([...questions, ...newQuestions]);
   }
@@ -272,10 +350,12 @@ export default function CreateQuizPage() {
 
 
     // const prompt = `Generate a quiz on the topic of ${topic} with ${difficulty} difficulty. The quiz should contain ${generateQuestionsCount} questions and be in the format of ${generateQuestionsType} only (e.g., multiple choice, true/false, etc.). For each question, provide a list of answer options, and explicitly state the correct answer clearly after all the options.`;
-    const prompt = `Generate a quiz on the topic of ${topic} with ${difficulty} difficulty. The quiz should contain ${generateQuestionsCount} questions and be in the format of ${generateQuestionsType} only (e.g., multiple choice, true/false, etc.).
+    const prompt = `Generate a quiz on the topic of ${topic} with ${generateDifficulty} difficulty. The quiz should contain ${generateQuestionsCount} questions and be in the format of ${generateQuestionsType} only (e.g., multiple choice, true/false, etc.).
 
     - If the question format is multiple choice, provide exactly 4 answer options.
-    - For all question types, clearly state the correct answer after listing the options.`;
+    - For all question types, clearly state the correct answer after listing the options.
+    - Don't specify is it a true/false question or multiple choice question.
+    - Number each question starting with "1." (e.g., 1., 2., etc.), even if there is only one question.`;
 
     const payload = {
       "contents": [{
@@ -414,6 +494,8 @@ export default function CreateQuizPage() {
                     value={timeLimitMinutes}
                     onChange={(e) => {
                       e.target.value = (e.target.value) ? e.target.value : "1";
+                      if (Number.parseInt(e.target.value) < 0)
+                        e.target.value = "0";
                       setTimeLimitMinutes(Number.parseInt(e.target.value))
                     }}
                     className="w-32"
@@ -434,6 +516,121 @@ export default function CreateQuizPage() {
                     <SelectItem value="hard">Hard</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="pointsInput">Questions Points</Label>
+                <div id="pointsInput">
+                  <div className="flex items-center gap-5 mt-3">
+                    <div>
+                      <Label htmlFor="easyPlusPoints" className="text-sm text-gray-600 dark:text-gray-400">Easy Positive Points</Label>
+                      <Input
+                        id="easyPlusPoints"
+                        type="number"
+                        min="1"
+                        max="120"
+                        value={easyPlusPoints}
+                        onChange={(e) => {
+                          e.target.value = (e.target.value) ? e.target.value : "1";
+                          if (Number.parseInt(e.target.value) < 0)
+                            e.target.value = "0";
+                          setEasyPlusPoints(Number.parseInt(e.target.value))
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="easyNegPoints" className="text-sm text-gray-600 dark:text-gray-400">Easy Negative Points</Label>
+                      <Input
+                        id="easyNegPoints"
+                        type="number"
+                        min="0"
+                        max="120"
+                        value={easyNegPoints}
+                        onChange={(e) => {
+                          e.target.value = (e.target.value) ? e.target.value : "0";
+                          if (Number.parseInt(e.target.value) < 0)
+                            e.target.value = "0";
+                          setEasyNegPoints(Number.parseInt(e.target.value))
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-5 mt-3">
+                    <div>
+                      <Label htmlFor="mediumPlusPoints" className="text-sm text-gray-600 dark:text-gray-400">Medium Positive Points</Label>
+                      <Input
+                        id="mediumPlusPoints"
+                        type="number"
+                        min="1"
+                        max="120"
+                        value={mediumPlusPoints}
+                        onChange={(e) => {
+                          e.target.value = (e.target.value) ? e.target.value : "1";
+                          if (Number.parseInt(e.target.value) < 0)
+                            e.target.value = "0";
+                          setMediumPlusPoints(Number.parseInt(e.target.value))
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="mediumNegPoints" className="text-sm text-gray-600 dark:text-gray-400">Medium Negative Points</Label>
+                      <Input
+                        id="mediumNegPoints"
+                        type="number"
+                        min="0"
+                        max="120"
+                        value={mediumNegPoints}
+                        onChange={(e) => {
+                          e.target.value = (e.target.value) ? e.target.value : "0";
+                          if (Number.parseInt(e.target.value) < 0)
+                            e.target.value = "0";
+                          setMediumNegPoints(Number.parseInt(e.target.value))
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-5 mt-3">
+                    <div>
+                      <Label htmlFor="hardPlusPoints" className="text-sm text-gray-600 dark:text-gray-400">Hard Positive Points</Label>
+                      <Input
+                        id="hardPlusPoints"
+                        type="number"
+                        min="1"
+                        max="120"
+                        value={hardPlusPoints}
+                        onChange={(e) => {
+                          e.target.value = (e.target.value) ? e.target.value : "1";
+                          if (Number.parseInt(e.target.value) < 0)
+                            e.target.value = "0";
+                          setHardPlusPoints(Number.parseInt(e.target.value))
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="hardNegPoints" className="text-sm text-gray-600 dark:text-gray-400">Hard Negative Points</Label>
+                      <Input
+                        id="hardNegPoints"
+                        type="number"
+                        min="0"
+                        max="120"
+                        value={hardNegPoints}
+                        onChange={(e) => {
+                          e.target.value = (e.target.value) ? e.target.value : "0";
+                          if (Number.parseInt(e.target.value) < 0)
+                            e.target.value = "0";
+                          setHardNegPoints(Number.parseInt(e.target.value))
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </CardContent>
           </Card>
@@ -459,7 +656,7 @@ export default function CreateQuizPage() {
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold">Ask AI</h3>
                     <div className="flex items-center gap-2">
-                      {/* <Select
+                      <Select
                         value={generateQuestionsType}
                         onValueChange={(value: "multiple-choice" | "true-false") =>
                           setGenerateQuestionsType(value)
@@ -472,7 +669,7 @@ export default function CreateQuizPage() {
                           <SelectItem value="multiple-choice">Multiple Choice</SelectItem>
                           <SelectItem value="true-false">True/False</SelectItem>
                         </SelectContent>
-                      </Select> */}
+                      </Select>
                       <Button variant="outline" type="button" size="icon" 
                       onClick={resetAIPanel}>
                         <X className="h-4 w-4" />
@@ -512,17 +709,17 @@ export default function CreateQuizPage() {
 
                     <div className="flex justify-center items-center w-full">
                       <div className="w-full">
-                      <Label htmlFor="generateDifficulty">Generate Difficulty Level</Label>
-                      <Select value={difficulty} onValueChange={setDifficulty}>
-                        <SelectTrigger className="w-full md:w-48">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="easy">Easy</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="hard">Hard</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <Label htmlFor="generateDifficulty">Generate Difficulty Level</Label>
+                        <Select value={generateDifficulty} onValueChange={setGenerateDifficulty}>
+                          <SelectTrigger className="w-full md:w-48">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="easy">Easy</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="hard">Hard</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
@@ -551,14 +748,74 @@ export default function CreateQuizPage() {
                   <div key={question.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-lg font-semibold">Question {index + 1}</h3>
-                      <div className="flex items-center gap-2">
+                      <Button variant="destructive" size="icon" onClick={() => deleteQuestion(question.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 items-center mb-4 gap-5">
+                      <div>
+                        <Label htmlFor="positivePoints">Positive Points</Label>
+                        <Input
+                          type="number"
+                          id="positivePoints"
+                          min="1"
+                          value={question.positivePoints}
+                          onChange={(e) => {
+                            e.target.value = (e.target.value) ? e.target.value : "1";
+                            if (Number.parseInt(e.target.value) < 0)
+                              e.target.value = "0";
+                            updateQuestion(question.id, "positivePoints", Number.parseInt(e.target.value))
+                          }}
+                          className="w-full"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="negativePoints">Negative Points</Label>
+                        <Input
+                          type="number"
+                          id="negativePoints"
+                          min="0"
+                          value={question.negativePoints}
+                          onChange={(e) => {
+                            e.target.value = (e.target.value) ? e.target.value : "0";
+                            if (Number.parseInt(e.target.value) < 0)
+                              e.target.value = "0";
+                            updateQuestion(question.id, "negativePoints", Number.parseInt(e.target.value))
+                          }}
+                          className="w-full"
+                        />
+                      </div>
+
+                      {/* Difficulty Level */}
+                      <div>
+                        <Label htmlFor="difficulty">Difficulty Level</Label>
+                        <Select value={question.difficulty} onValueChange={
+                          (value: "easy" | "medium" | "hard") =>
+                            updateQuestion(question.id, "difficulty", value)
+                        }>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="easy">Easy</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="hard">Hard</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+
+                      {/* Question Type */}
+                      <div>
+                        <Label htmlFor="questionType">Question Type</Label>
                         <Select
                           value={question.type}
                           onValueChange={(value: "multiple-choice" | "true-false") =>
                             updateQuestion(question.id, "type", value)
                           }
                         >
-                          <SelectTrigger className="w-40">
+                          <SelectTrigger className="w-full">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -566,10 +823,8 @@ export default function CreateQuizPage() {
                             <SelectItem value="true-false">True/False</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Button variant="destructive" size="icon" onClick={() => deleteQuestion(question.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
                       </div>
+                        
                     </div>
 
                     <div className="space-y-4">

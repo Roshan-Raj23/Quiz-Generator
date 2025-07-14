@@ -53,7 +53,7 @@ export default function MyQuizzesPage() {
       setShowDeleteDialog(false);
       setQuizIdToDelete(0);
       setQuizTitleToDelete("");
-      toast.success("Quiz deleted successfully");
+      toast.success(`${quizTitleToDelete} quiz deleted successfully`);
       getAllQuizzes();
     } else {
       toast.error("Error deleting quiz");

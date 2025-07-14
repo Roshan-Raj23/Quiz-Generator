@@ -41,6 +41,8 @@ import { toast } from "sonner"
 import axios from "axios"
 import { useRouter } from "next/navigation"
 import { Quiz } from "@/Model/Quiz"
+import Link from "next/link"
+import { Badge } from "@/components/ui/badge"
 
 
 const currentUser = {
@@ -105,17 +107,17 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
   // }, []);
 
 
-  // Find the Quiz
-  useEffect(() => {
-    getQuiz();
-  } , [])
-
-  const getQuiz = async () => {
+  const getQuiz = useCallback(async () => {
     const response = await axios.post('/api/isQuiz' , {id : quizId})
     const responseStatus = response.data.status;
     const currentQuiz = response.data.quiz;
     if (responseStatus == 200 && response.data.find) {
-      setQuiz(response.data.quiz);
+      const shuffledQuiz = {
+        ...currentQuiz,
+        questions: [...currentQuiz.questions].sort(() => Math.random() - 0.5)
+      };
+      
+      setQuiz(shuffledQuiz);
       setTimedQuiz(currentQuiz.timeLimit);
       setIsStrict(currentQuiz.makeStrict);
 
@@ -130,7 +132,12 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
       toast.error("No quiz with this Quiz ID");
       router.push('/take')
     }
-  }
+  }, [quizId, router])
+
+  // Find the Quiz
+  useEffect(() => {
+    getQuiz();
+  } , [getQuiz])
 
 
   // Initialize speech synthesis
@@ -152,39 +159,31 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
 
   
   const handleNext = useCallback(() => {
-    // const currentQuestion = getCurrentQuestion()
-    // const currentAnswer = answers[currentQuestion.id]
-
-    // if (
-    //   currentQuestion.required &&
-    //   (!currentAnswer || currentAnswer.answer === undefined || currentAnswer.answer === "")
-    // ) {
-    //   toast.error("Please answer this question before proceeding");
-    //   return
-    // }
-
     if (quiz && currentQuestionIndex < quiz.questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1)
     }
-    
     setTimeLeftPerQuestion(timePerQuestion);
-  }, [quiz, currentQuestionIndex])
+  }, [quiz, currentQuestionIndex, timePerQuestion])
 
-  // Per question timer for only Strict questions
-  useEffect(() => {
-    if (timeLeftPerQuestion > 0 && isStrict) {
-      const timer = setTimeout(() => setTimeLeftPerQuestion(timeLeftPerQuestion - 1), 1000)
-      return () => clearTimeout(timer)
-    } else if (timeLeftPerQuestion === 0) {
-      if (quiz && currentQuestionIndex === quiz?.questions.length - 1) 
-        handleAutoSubmit();
-      else {
-        handleNext();
-      }
+  const handlePrevious = useCallback(() => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1)
     }
-  } , [timeLeftPerQuestion , setTimeLeftPerQuestion , isStrict , handleNext , timePerQuestion])
-  
-  
+  }, [currentQuestionIndex])
+
+  const toggleFlag = useCallback(() => {
+    setFlaggedQuestions((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(currentQuestionIndex)) {
+        newSet.delete(currentQuestionIndex)
+      } else {
+        newSet.add(currentQuestionIndex)
+      }
+      return newSet
+    })
+  }, [currentQuestionIndex])
+
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -193,7 +192,8 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
       switch (e.key) {
         case "ArrowLeft":
           e.preventDefault()
-          handlePrevious()
+          if (!isStrict)
+            handlePrevious()
           break
         case "ArrowRight":
         case "Enter":
@@ -202,9 +202,11 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
           break
         case "f":
         case "F":
-          if (e.ctrlKey || e.metaKey) {
-            e.preventDefault()
-            toggleFlag()
+          if (!isStrict) {
+            if (e.ctrlKey || e.metaKey) {
+              e.preventDefault()
+              toggleFlag()
+            }
           }
           break
       }
@@ -212,8 +214,22 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
 
     window.addEventListener("keydown", handleKeyPress)
     return () => window.removeEventListener("keydown", handleKeyPress)
-  }, [currentQuestionIndex])
+  }, [currentQuestionIndex, handleNext, handlePrevious, toggleFlag , isStrict])
 
+
+  // Per question timer for only Strict questions
+  useEffect(() => {
+    if (timeLeftPerQuestion > 0 && isStrict) {
+      const timer = setTimeout(() => setTimeLeftPerQuestion(timeLeftPerQuestion - 1), 1000)
+      return () => clearTimeout(timer)
+    } else if (timeLeftPerQuestion === 0 && isStrict) {
+      if (quiz && currentQuestionIndex === quiz?.questions.length - 1) 
+        handleAutoSubmit();
+      else {
+        handleNext();
+      }
+    }
+  } , [timeLeftPerQuestion, isStrict, handleNext, timePerQuestion, quiz, currentQuestionIndex])
 
   // Voice synthesis
   const speakText = useCallback(
@@ -236,7 +252,7 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
       const currentQuestion = quiz.questions[currentQuestionIndex]
       speakText(currentQuestion.question)
     }
-  }, [currentQuestionIndex, voiceEnabled, speakText])
+  }, [currentQuestionIndex, voiceEnabled, speakText , quiz])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -258,19 +274,22 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
         answer,
         timeSpent,
         flagged: flaggedQuestions.has(questionId),
-        skipped: false,
       },
     }))
   }
 
   const handleAnswerChange = (answer: number) => {
-    saveAnswer(currentQuestionIndex, answer)
-  }
+    // If the checked answer is the same as the previous answer, remove it from answers
+    if (answers[currentQuestionIndex]?.answer === answer) {   
+      setAnswers((prev) => {
+        const newAnswers = { ...prev };
+        delete newAnswers[currentQuestionIndex];
+        return newAnswers;
+      });
+      return;
+    } 
 
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1)
-    }
+    saveAnswer(currentQuestionIndex, answer)
   }
 
   // const handleSkip = () => {
@@ -293,18 +312,6 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
   //     }
   //   }
   // }
-
-  const toggleFlag = () => {
-    setFlaggedQuestions((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(currentQuestionIndex)) {
-        newSet.delete(currentQuestionIndex)
-      } else {
-        newSet.add(currentQuestionIndex)
-      }
-      return newSet
-    })
-  }
 
   // const togglePause = () => {
   //   // if (sampleQuiz.allowPause) {
@@ -362,7 +369,11 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
                 key={index}
                 className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
-                <RadioGroupItem value={index.toString()} id={`option-${index}`} />
+                <RadioGroupItem 
+                  value={index.toString()} 
+                  id={`option-${index}`}
+                  onClick={() => handleAnswerChange(index)}
+                />
                 <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
                   {option}
                 </Label>
@@ -379,13 +390,21 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
             className="space-y-3"
           >
             <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-              <RadioGroupItem value="0" id="true" />
+              <RadioGroupItem 
+                value="0" 
+                id="true"
+                onClick={() => handleAnswerChange(0)}
+              />
               <Label htmlFor="true" className="flex-1 cursor-pointer">
                 True
               </Label>
             </div>
             <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-              <RadioGroupItem value="1" id="false" />
+              <RadioGroupItem 
+                value="1" 
+                id="false"
+                onClick={() => handleAnswerChange(1)}
+              />
               <Label htmlFor="false" className="flex-1 cursor-pointer">
                 False
               </Label>
@@ -666,12 +685,14 @@ export default function TakeQuizPage({ params }: { params: Promise<{ id: number 
                     </Badge>
                   )} */}
 
-                  {/* {currentQuestion.points && (
-                    <Badge variant="secondary" className="text-xs">
-                      {currentQuestion.points} pts
-                      10 pts
+                  <Badge variant="secondary" className="text-xs bg-green-400">
+                    {currentQuestion?.positivePoints} pts
+                  </Badge>
+                  {(currentQuestion?.negativePoints && currentQuestion?.negativePoints > 0) ? (
+                    <Badge variant="secondary" className="text-xs bg-red-400">
+                      -{currentQuestion?.negativePoints} pts
                     </Badge>
-                  )} */}
+                  ) : null}
                 </div>
 
                 <p className="text-gray-900 dark:text-white text-lg leading-relaxed whitespace-pre-wrap">
@@ -829,16 +850,15 @@ function QuizResults({ quiz , answers }: {
     let earnedPoints = 0
 
     quiz.questions.forEach((question , index) => {
-      // totalPoints += question.points
-      totalPoints += 10;        // Setting 10pts as default for all questions
+      totalPoints += question.positivePoints;        // Setting 10pts as default for all questions
       const userAnswer = answers[index]
 
-      if (userAnswer && !userAnswer.skipped) {
+      if (userAnswer) {
         // Simple scoring logic - would need more sophisticated comparison for real app
         if (JSON.stringify(userAnswer.answer) === JSON.stringify(question.correctAnswer)) {
-          // earnedPoints += question.points
-          earnedPoints += 10;
-        }
+          earnedPoints += question.positivePoints
+        } else 
+          earnedPoints -= question.negativePoints
       }
     })
 
@@ -852,7 +872,7 @@ function QuizResults({ quiz , answers }: {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card className="mb-8">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl mb-2">Quiz Completed!</CardTitle>
@@ -860,25 +880,27 @@ function QuizResults({ quiz , answers }: {
           </CardHeader>
 
           <CardContent className="text-center space-y-6">
-            <div className="text-6xl font-bold text-primary">{score.percentage}%</div>
+            <div className="text-6xl font-bold text-primary animate-bounce-in">{score.percentage}%</div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
+              <div className="text-center animate-slide-in-left" 
+              style={{ animationDelay: "0.1s" }}>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">{score.earnedPoints}</div>
                 <div className="text-sm text-gray-600 dark:text-gray-300">Points Earned</div>
               </div>
 
-              <div className="text-center">
+              <div className="text-center animate-slide-in-left" 
+              style={{ animationDelay: "0.2s" }}>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">{score.totalPoints}</div>
                 <div className="text-sm text-gray-600 dark:text-gray-300">Total Points</div>
               </div>
 
-              <div className="text-center">
+              <div className="text-center animate-slide-in-right" style={{ animationDelay: "0.3s" }}>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">{answeredQuestions}</div>
                 <div className="text-sm text-gray-600 dark:text-gray-300">Questions Answered</div>
               </div>
 
-              <div className="text-center">
+              <div className="text-center animate-slide-in-right" style={{ animationDelay: "0.4s" }}>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">{quiz.questions.length}</div>
                 <div className="text-sm text-gray-600 dark:text-gray-300">Total Questions</div>
               </div>
@@ -892,8 +914,8 @@ function QuizResults({ quiz , answers }: {
               <Button variant="outline" className="bg-transparent">
                 Share Results
               </Button>
-              <Button variant="outline" className="bg-transparent">
-                View Detailed Results
+              <Button asChild className="flex items-center gap-2">
+                <Link href={`/take-quiz/${quiz.id}/results`}>View Detailed Results</Link>
               </Button>
             </div>
           </CardContent>

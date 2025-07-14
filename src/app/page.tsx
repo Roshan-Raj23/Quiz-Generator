@@ -8,6 +8,7 @@ import { useEffect, useState } from "react"
 import { User } from "@/Model/User"
 import { usePathname } from "next/navigation"
 import axios from "axios"
+import { PageLoader } from "@/components/loading"
 
 export default function HomePage() {
   const features = [
@@ -44,11 +45,19 @@ export default function HomePage() {
   ]
 
   const pathname = usePathname()
+  const [isLoading, setIsLoading] = useState(true)
   const [currentUser , setCurrentUser] = useState<User>()
+
+  useEffect(() => {
+    // Simulate loading
+    const timer = setTimeout(() => setIsLoading(false), 800)
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     getUser();
   }, [pathname]);
+
 
   const getUser = async () => {
     const response = await axios.get('/api/getCurrentUser')
@@ -56,6 +65,9 @@ export default function HomePage() {
     setCurrentUser(response.data.user);
   }
     
+  if (isLoading) {
+    return <PageLoader />
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">

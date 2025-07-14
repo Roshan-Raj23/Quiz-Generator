@@ -4,8 +4,11 @@ export interface Question extends Document {
     id: string;
     question: string;
     options: string[];
+    difficulty?: string;
     type: "multiple-choice" | "true-false";
     correctAnswer: number;
+    positivePoints: number;
+    negativePoints: number;
 }
 
 const QuestionSchema: Schema<Question> = new mongoose.Schema({
@@ -22,6 +25,10 @@ const QuestionSchema: Schema<Question> = new mongoose.Schema({
         type: [String],
         required: true,
     },
+    difficulty: {
+        type: String,
+        required: true
+    },
     type: {
         type: String,
         enum: ["multiple-choice", "true-false"],
@@ -30,6 +37,16 @@ const QuestionSchema: Schema<Question> = new mongoose.Schema({
     correctAnswer: {
         type: Number,
         required: true,
+    },
+    positivePoints: {
+        type: Number,
+        required: true,
+        default: 4
+    },
+    negativePoints: {
+        type: Number,
+        required: true,
+        default: 0
     }
 });
 
