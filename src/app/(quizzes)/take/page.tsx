@@ -12,84 +12,10 @@ import { Label } from "@/components/ui/label"
 import { Search, Play, Clock, Users, BarChart3, Zap, TrendingUp, Star } from "lucide-react"
 import axios from "axios"
 import { toast } from "sonner"
+import { Quiz } from "@/Model/Quiz"
 
-// Sample available quizzes
-const featuredQuizzes = [
-  {
-    id: "js-fundamentals",
-    title: "JavaScript Fundamentals",
-    description: "Test your knowledge of JavaScript basics, ES6 features, and modern development practices",
-    difficulty: "Medium",
-    questions: 15,
-    timeLimit: 20,
-    participants: 1247,
-    rating: 4.8,
-    category: "Programming",
-    thumbnail: "/placeholder.svg?height=120&width=200",
-  },
-  {
-    id: "react-advanced",
-    title: "Advanced React Concepts",
-    description: "Deep dive into React hooks, context, performance optimization, and advanced patterns",
-    difficulty: "Hard",
-    questions: 25,
-    timeLimit: 35,
-    participants: 892,
-    rating: 4.9,
-    category: "Programming",
-    thumbnail: "/placeholder.svg?height=120&width=200",
-  },
-  {
-    id: "world-geography",
-    title: "World Geography Challenge",
-    description: "Test your knowledge of world capitals, countries, landmarks, and geographical features",
-    difficulty: "Medium",
-    questions: 30,
-    timeLimit: 25,
-    participants: 2156,
-    rating: 4.6,
-    category: "Geography",
-    thumbnail: "/placeholder.svg?height=120&width=200",
-  },
-  {
-    id: "science-trivia",
-    title: "General Science Trivia",
-    description: "Explore physics, chemistry, biology, and earth science concepts in this comprehensive quiz",
-    difficulty: "Easy",
-    questions: 20,
-    timeLimit: 15,
-    participants: 3421,
-    rating: 4.7,
-    category: "Science",
-    thumbnail: "/placeholder.svg?height=120&width=200",
-  },
-  {
-    id: "history-world",
-    title: "World History Timeline",
-    description: "Journey through major historical events, civilizations, and influential figures",
-    difficulty: "Hard",
-    questions: 40,
-    timeLimit: 45,
-    participants: 756,
-    rating: 4.5,
-    category: "History",
-    thumbnail: "/placeholder.svg?height=120&width=200",
-  },
-  {
-    id: "math-algebra",
-    title: "Algebra Mastery",
-    description: "Solve equations, work with polynomials, and master algebraic concepts",
-    difficulty: "Medium",
-    questions: 18,
-    timeLimit: 30,
-    participants: 1089,
-    rating: 4.4,
-    category: "Mathematics",
-    thumbnail: "/placeholder.svg?height=120&width=200",
-  },
-]
 
-const categories = ["All", "Programming", "Science", "Geography", "History", "Mathematics", "Literature", "Arts"]
+const categories = ["All", "Programming", "Science", "Geography", "History", "Mathematics", "Sports", "Arts"]
 
 export default function TakeQuizPage() {
   const searchParams = useSearchParams();
@@ -101,18 +27,20 @@ export default function TakeQuizPage() {
     }
   }, [error]);
 
-
   const router = useRouter()
   const [quizId, setQuizId] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [searchTerm, setSearchTerm] = useState("")
+  const [quizzes, setQuizzes] = useState<Quiz[]>([])
 
-  const handleStartQuiz = (id: string) => {
-    // router.push(`/take-quiz/${id}`)
+  useEffect(() => {
+    const fetchQuizzes = async () => {
+      const response = await axios.get("/api/getAllQuizzes")
+      setQuizzes(response.data.quiz)
+    }
+    fetchQuizzes()
+  }, [])
 
-    // Doing nothing as this is a call from dummy card
-    console.log("Go to this id : " , id);
-  }
 
   const handleQuizIdSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -134,11 +62,11 @@ export default function TakeQuizPage() {
     }
   }
 
-  const filteredQuizzes = featuredQuizzes.filter((quiz) => {
+  const filteredQuizzes = quizzes.filter((quiz) => {
     const matchesCategory = selectedCategory === "All" || quiz.category === selectedCategory
     const matchesSearch =
-      quiz.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      quiz.description.toLowerCase().includes(searchTerm.toLowerCase())
+      quiz.quizTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      quiz.quizDescription.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesCategory && matchesSearch
   })
 
@@ -250,35 +178,31 @@ export default function TakeQuizPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredQuizzes.map((quiz) => (
               <Card key={quiz.id} className="hover:shadow-xl transition-all duration-300 group cursor-pointer">
-                <div className="relative overflow-hidden">
-                  <img 
-                    src={quiz.thumbnail || "/placeholder.svg"}
-                    alt={quiz.title}
-                    className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute top-2 right-2">
-                    <Badge className={getDifficultyColor(quiz.difficulty)}>{quiz.difficulty}</Badge>
-                  </div>
-                </div>
-
                 <CardContent className="p-6">
                   <div className="mb-3">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1 group-hover:text-primary transition-colors">
-                      {quiz.title}
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-2">{quiz.description}</p>
+                    <div className="flex items-center justify-between relative">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1 group-hover:text-primary transition-colors">
+                        {quiz.quizTitle}
+                      </h3>
+                      <div className="absolute -top-2 -right-2">
+                        <Badge className={getDifficultyColor(quiz.difficulty)}>{quiz.difficulty}</Badge>
+                      </div>
+                    </div>
+                    <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-2">{quiz.quizDescription}</p>
                   </div>
 
                   <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mb-4">
                     <div className="flex items-center gap-4">
                       <span className="flex items-center gap-1">
                         <BarChart3 className="h-4 w-4" />
-                        {quiz.questions} questions
+                        {quiz.questions.length} questions
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {quiz.timeLimit} min
-                      </span>
+                      { quiz.timeLimit && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          {quiz.timeLimitTotal} min
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -286,11 +210,11 @@ export default function TakeQuizPage() {
                     <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                       <span className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
-                        {quiz.participants.toLocaleString()}
+                        {quiz.noofResponses.toLocaleString()}
                       </span>
                       <span className="flex items-center gap-1">
                         <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        {quiz.rating}
+                        {/* {quiz.rating} */} 4.8
                       </span>
                     </div>
                     <Badge variant="outline" className="text-xs">
@@ -299,7 +223,7 @@ export default function TakeQuizPage() {
                   </div>
 
                   <Button
-                    onClick={() => handleStartQuiz(quiz.id)}
+                    onClick={() => router.push(`/take-quiz/${quiz.id}`)}
                     className="w-full group-hover:bg-primary group-hover:text-white transition-colors"
                   >
                     <Play className="h-4 w-4 mr-2" />
@@ -307,6 +231,66 @@ export default function TakeQuizPage() {
                   </Button>
                 </CardContent>
               </Card>
+
+
+              // <Card key={quiz.id} className="hover:shadow-xl transition-all duration-300 group cursor-pointer">
+              //   <div className="relative overflow-hidden">
+              //     <img 
+              //       src={quiz.thumbnail || "/placeholder.svg"}
+              //       alt={quiz.title}
+              //       className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
+              //     />
+              //     <div className="absolute top-2 right-2">
+              //       <Badge className={getDifficultyColor(quiz.difficulty)}>{quiz.difficulty}</Badge>
+              //     </div>
+              //   </div>
+
+              //   <CardContent className="p-6">
+              //     <div className="mb-3">
+              //       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1 group-hover:text-primary transition-colors">
+              //         {quiz.title}
+              //       </h3>
+              //       <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-2">{quiz.description}</p>
+              //     </div>
+
+              //     <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mb-4">
+              //       <div className="flex items-center gap-4">
+              //         <span className="flex items-center gap-1">
+              //           <BarChart3 className="h-4 w-4" />
+              //           {quiz.questions} questions
+              //         </span>
+              //         <span className="flex items-center gap-1">
+              //           <Clock className="h-4 w-4" />
+              //           {quiz.timeLimit} min
+              //         </span>
+              //       </div>
+              //     </div>
+
+              //     <div className="flex items-center justify-between mb-4">
+              //       <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+              //         <span className="flex items-center gap-1">
+              //           <Users className="h-4 w-4" />
+              //           {quiz.participants.toLocaleString()}
+              //         </span>
+              //         <span className="flex items-center gap-1">
+              //           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+              //           {quiz.rating}
+              //         </span>
+              //       </div>
+              //       <Badge variant="outline" className="text-xs">
+              //         {quiz.category}
+              //       </Badge>
+              //     </div>
+
+              //     <Button
+              //       onClick={() => handleStartQuiz(quiz.id)}
+              //       className="w-full group-hover:bg-primary group-hover:text-white transition-colors"
+              //     >
+              //       <Play className="h-4 w-4 mr-2" />
+              //       Start Quiz
+              //     </Button>
+              //   </CardContent>
+              // </Card>
             ))}
           </div>
 

@@ -39,7 +39,7 @@ export default function CreateQuizPage() {
   // const [generatingResponse , setGeneratingResponse] = useState(false);
   const [generateDifficulty , setGenerateDifficulty] = useState("medium");
   const [generateQuestionsType , setGenerateQuestionsType] = useState<"multiple-choice" | "true-false">("multiple-choice")
-  const [isDraft , setisDraft] = useState(false);
+  const [isDraft , setIsDraft] = useState(false);
   const [makeStrict , setMakeStrict] = useState(false);
   const [easyPlusPoints , setEasyPlusPoints] = useState(4);
   const [easyNegPoints , setEasyNegPoints] = useState(0);
@@ -47,6 +47,7 @@ export default function CreateQuizPage() {
   const [mediumNegPoints , setMediumNegPoints] = useState(1);
   const [hardPlusPoints , setHardPlusPoints] = useState(4);
   const [hardNegPoints , setHardNegPoints] = useState(2);
+  const [category , setCategory] = useState("Others");
 
 
 
@@ -83,8 +84,9 @@ export default function CreateQuizPage() {
       setTimeLimit(currentQuiz.timeLimit);
       setTimeLimitMinutes(currentQuiz.timeLimitMinutes);
       setDifficulty(currentQuiz.difficulty);
-      setisDraft(currentQuiz.isDraft);
+      // setIsDraft(currentQuiz.isDraft);
       setMakeStrict(currentQuiz.makeStrict);
+      setCategory(currentQuiz.category);
 
     } else {
       toast.error("No quiz with this Quiz ID");
@@ -100,8 +102,8 @@ export default function CreateQuizPage() {
       type: "multiple-choice",
       options: ["", "", "", ""],
       correctAnswer: 0,
-      positivePoints: 4,
-      negativePoints: 0,
+      positivePoints: mediumPlusPoints,
+      negativePoints: mediumNegPoints,
       difficulty: difficulty
     }
     setQuestions([...questions, newQuestion])
@@ -144,7 +146,8 @@ export default function CreateQuizPage() {
       timeLimitTotal,
       difficulty,
       isDraft,
-      makeStrict
+      makeStrict,
+      category
     }
 
     const response = await axios.post('/api/create' , {quiz , isEdit , id});
@@ -158,8 +161,8 @@ export default function CreateQuizPage() {
       } else 
         toast.success("Quiz saved successfully!");
 
-      if (isDraft)
-        redirect("/take-quiz/" + response.data.quiz.id);
+      // if (isDraft)
+      //   redirect("/take-quiz/" + response.data.quiz.id);
       
       redirect("/my-quizzes")
     } else if (responseStatus == 400) {
@@ -503,19 +506,44 @@ export default function CreateQuizPage() {
                 </div>
               )}
 
-              <div>
-                <Label htmlFor="difficulty">Difficulty Level</Label>
-                <Select value={difficulty} onValueChange={setDifficulty}>
-                {/* <Select value={difficulty} onValueChange={}> */}
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="easy">Easy</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="hard">Hard</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="flex items-center gap-5"> 
+                
+                <div>
+                  <Label htmlFor="difficulty">Difficulty Level</Label>
+                  <Select value={difficulty} onValueChange={setDifficulty}>
+                  {/* <Select value={difficulty} onValueChange={}> */}
+                    <SelectTrigger className="w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="easy">Easy</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="hard">Hard</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="category">Category</Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Others">Others</SelectItem>
+                      <SelectItem value="Programming">Programming</SelectItem>
+                      <SelectItem value="Mathematics">Mathematics</SelectItem>
+                      <SelectItem value="Science">Science</SelectItem>
+                      <SelectItem value="History">History</SelectItem>
+                      <SelectItem value="Geography">Geography</SelectItem>
+                      <SelectItem value="Arts">Arts</SelectItem>
+                      <SelectItem value="Music">Music</SelectItem>
+                      <SelectItem value="Sports">Sports</SelectItem>
+                      <SelectItem value="General Knowledge">General Knowledge</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              
               </div>
 
               <div>
@@ -557,6 +585,7 @@ export default function CreateQuizPage() {
                       />
                     </div>
                   </div>
+
                   <div className="flex items-center gap-5 mt-3">
                     <div>
                       <Label htmlFor="mediumPlusPoints" className="text-sm text-gray-600 dark:text-gray-400">Medium Positive Points</Label>
@@ -593,6 +622,7 @@ export default function CreateQuizPage() {
                       />
                     </div>
                   </div>
+
                   <div className="flex items-center gap-5 mt-3">
                     <div>
                       <Label htmlFor="hardPlusPoints" className="text-sm text-gray-600 dark:text-gray-400">Hard Positive Points</Label>
@@ -892,11 +922,11 @@ export default function CreateQuizPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-end">
-            <Button variant="outline" type="submit" onClick={() => setisDraft(true)} className="flex items-center gap-2 bg-transparent">
+            <Button variant="outline" type="submit" onClick={() => setIsDraft(true)} className="flex items-center gap-2 bg-transparent">
               <Eye className="h-4 w-4" />
               Draft Quiz
             </Button>
-            <Button type="submit" className="flex items-center gap-2">
+            <Button type="submit" onClick={() => setIsDraft(false)} className="flex items-center gap-2">
               <Save className="h-4 w-4" />
               Save Quiz
             </Button>

@@ -33,7 +33,8 @@ export async function POST(request: Request) {
                 isDraft: quiz.isDraft,
                 makeStrict: quiz.makeStrict,
                 creator: currentUser._id,
-                creatorUsername: currentUser.username
+                creatorUsername: currentUser.username,
+                category: quiz.category
             });
 
             await newQuiz.save();
@@ -51,6 +52,7 @@ export async function POST(request: Request) {
                     questions: quiz.questions,
                     isDraft: quiz.isDraft,
                     makeStrict: quiz.makeStrict,
+                    category: quiz.category
                 },
                 { new: true } // Return the updated document
             );

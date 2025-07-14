@@ -66,6 +66,7 @@ export interface Quiz extends Document {
     noofResponses: number;
     isDraft: boolean;
     averageScore?: number;
+    category: string;
 }
 
 const QuizSchema: Schema<Quiz> = new mongoose.Schema({
@@ -138,6 +139,11 @@ const QuizSchema: Schema<Quiz> = new mongoose.Schema({
         type: Number,
         required: true,
         default: 0
+    },
+    category: {
+        type: String,
+        required: true,
+        default: "Others"
     }
 });
 

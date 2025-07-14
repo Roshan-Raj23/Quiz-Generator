@@ -178,8 +178,9 @@ export default function MyQuizzesPage() {
                         <CardTitle className="text-xl">{quiz.quizTitle}</CardTitle>
                         {/* <span className="text-sm items-center">[ID: {quiz.id}]</span> */}
                         <Badge className={getDifficultyColor(quiz.difficulty)}>{quiz.difficulty}</Badge>
-                        {quiz.isDraft && <Badge variant="outline">Draft</Badge>}
-                        {quiz.makeStrict && <Badge variant="outline">Strict</Badge>}
+                        {quiz.isDraft && <Badge className="max-sm:hidden" variant="outline">Draft</Badge>}
+                        {quiz.makeStrict && <Badge className="max-sm:hidden" variant="outline">Strict</Badge>}
+                        <Badge className="max-sm:hidden" variant="outline">{quiz.category}</Badge>
                         <Badge variant="outline">{quiz.id}</Badge>
                       </div>
                       <p className="text-gray-600 dark:text-gray-300 mb-3">{quiz.quizDescription}</p>
