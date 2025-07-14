@@ -13,7 +13,11 @@ export function LoadingSpinner({
   return <Loader2 className={`animate-spin ${sizeClasses[size]} ${className}`} />
 }
 
-export function LoadingButton({ children, isLoading, ...props }: any) {
+export function LoadingButton({
+  children,
+  isLoading,
+  ...props
+}: React.PropsWithChildren<{ isLoading: boolean }> & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button {...props} disabled={isLoading} className={`${props.className} ${isLoading ? "loading-button" : ""}`}>
       {isLoading ? (
